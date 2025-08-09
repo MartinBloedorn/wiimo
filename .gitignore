@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Bb]in/
+[Oo]bj/
+*.log
+*.tlog
+*.obj
+*.exe
+*.dll
+*.pdb
+
+# Others
+*.VC.db
+*.VC.opendb
+
+# External libraries
+lib/*
