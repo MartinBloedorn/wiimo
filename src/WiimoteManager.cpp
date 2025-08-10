@@ -432,9 +432,8 @@ public:
 				wm->exp.mp.angle_rate_gyro.yaw);
 		}
 
-        mManager.mEventMutex.lock();
-        mManager.mEvents[events.id - 1] = events;
-        mManager.mEventMutex.unlock();
+		// Stash events onto current frame
+        mEventFrame[events.id - 1] = events;
 	}
 
 	short any_wiimote_connected(wiimote** wm, int mWiimote) {
@@ -489,6 +488,9 @@ public:
 
 		while (any_wiimote_connected(mWiimotes, MAX_WIIMOTES)) {
 			if (wiiuse_poll(mWiimotes, MAX_WIIMOTES)) {
+				// Create a fresh frame to collect all events:
+				mEventFrame = Manager::EventFrame();
+
 				/*
 				 *	This happens if something happened on any wiimote.
 				 *	So go through each one and check if anything happened.
@@ -564,12 +566,19 @@ public:
 						break;
 					}
 				}
+
+				// Add frame to queue:
+				mManager.mEventMutex.lock();
+				mManager.mEvents.push_back(mEventFrame);
+				mManager.mEventMutex.unlock();
 			}
 		}
 	}
 
 private:
 	Manager& mManager;
+
+	Manager::EventFrame mEventFrame;
 
 	wiimote** mWiimotes = nullptr;
 };
@@ -631,6 +640,9 @@ Manager::~Manager()
 
 void Manager::init()
 {
+	mEvents.resize(mMaxQueueSize);
+	mLocalEventsCopy.resize(mMaxQueueSize);
+
 	if (!mWorkerThread) {
 		mWorker = std::make_unique<Worker>(*this);
 		mWorkerThread = std::thread(&Worker::run, mWorker.get());
@@ -642,12 +654,19 @@ void Manager::update()
     if (!mCallback)
         return;
 
-    for (size_t i = 0; i < MAX_WIIMOTES; ++i) {
-        if (mEvents[i].has_value()) {
-            mCallback(mEvents[i].value());
-            mEvents[i].reset();
-        }
-    }
+	mEventMutex.lock();
+	mLocalEventsCopy.swap(mEvents);
+	mEventMutex.unlock();
+
+	for (EventFrame & frame : mLocalEventsCopy) {
+		for (size_t i = 0; i < MAX_WIIMOTES; ++i) {
+			if (frame[i].has_value()) {
+				mCallback(frame[i].value());
+			}
+		}
+	}
+
+	mLocalEventsCopy.clear();
 }
 
 } // namespace Wiimote

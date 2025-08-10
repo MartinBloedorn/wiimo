@@ -4,6 +4,7 @@
 #include <mutex>
 #include <memory>
 #include <thread>
+#include <deque>
 #include <atomic>
 #include <optional>
 #include <functional>
@@ -108,8 +109,12 @@ private:
     std::unique_ptr<Worker> mWorker;
     std::optional<std::thread> mWorkerThread;
 
+	const size_t mMaxQueueSize = 16;
+	using EventFrame = std::array<std::optional<ControllerEvents>, MAX_WIIMOTES>;
+
     std::mutex mEventMutex;
-    std::array<std::optional<ControllerEvents>, MAX_WIIMOTES> mEvents;
+    std::vector<EventFrame> mEvents;
+	std::vector<EventFrame> mLocalEventsCopy;
 
     std::function<void(const ControllerEvents&)> mCallback = {};
 

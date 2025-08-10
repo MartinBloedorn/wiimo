@@ -46,8 +46,9 @@ bool WiimoOscOutput::processControllerEvents(const Wiimote::ControllerEvents & e
 
 	if (events.balanceBoard) {
 		auto & b = *events.balanceBoard;
-		send(makePrefix(events.id) + "/board/xy",b.x, b.y);
+		send(makePrefix(events.id) + "/board/xy", b.x, b.y);
 		send(makePrefix(events.id) + "/board/raw", b.tr, b.tl, b.br, b.bl);
+		send(makePrefix(events.id) + "/board/total", b.total);
 	}
 
 	return true;
